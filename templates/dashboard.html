@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h2>Mi Dashboard de Bolsillos</h2>
+    <a href="{{ url_for('export_pdf') }}" class="btn btn-primary">Descargar Resumen PDF</a>
+</div>
+
+<div class="dashboard-grid mb-4">
+    <div class="stat-card glass-panel saldo" style="grid-column: 1 / -1;">
+        <h3>Saldo Total Disponible (Todos los bolsillos)</h3>
+        <div class="value">${{ "%.2f"|format(total_disponible) }}</div>
+    </div>
+</div>
+
+<div class="dashboard-grid mb-4">
+    <div class="stat-card glass-panel" style="border-left: 4px solid #10b981;">
+        <h3>Dólares (Efectivo)</h3>
+        <div class="value text-success">${{ "%.2f"|format(metodos.get('Dolares Efectivo', 0)) }}</div>
+    </div>
+    <div class="stat-card glass-panel" style="border-left: 4px solid #f59e0b;">
+        <h3>Binance</h3>
+        <div class="value" style="color: #f59e0b;">${{ "%.2f"|format(metodos.get('Binance', 0)) }}</div>
+    </div>
+    <div class="stat-card glass-panel" style="border-left: 4px solid #8b5cf6;">
+        <h3>Zelle</h3>
+        <div class="value" style="color: #8b5cf6;">${{ "%.2f"|format(metodos.get('Zelle', 0)) }}</div>
+    </div>
+    <div class="stat-card glass-panel" style="border-left: 4px solid #3b82f6;">
+        <h3>Bolívares</h3>
+        <div class="value" style="color: #3b82f6;">Bs.{{ "%.2f"|format(metodos.get('Bolivares', 0)) }}</div>
+    </div>
+</div>
+
+<div class="charts-section glass-panel mb-4">
+    <h3>Distribución del Saldo por Moneda/Método</h3>
+    <div style="position: relative; height: 300px; width: 100%;">
+        <canvas id="metodosChart"></canvas>
+    </div>
+</div>
+
+<div class="glass-panel mb-4">
+    <div class="flex justify-between items-center mb-4">
+        <h3>Mis Bolsillos (Fondos)</h3>
+    </div>
+    <div class="dashboard-grid">
+        {% for s in sources %}
+            <div class="stat-card glass-panel" style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="position: relative; display: flex; justify-content: center; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h4 style="color: var(--primary-color); margin: 0;">{{ s.name }}</h4>
+                        <div style="position: absolute; right: 0; top: -5px;">
+                            <button type="button" onclick="toggleDropdown({{ s.id }})" style="background: none; border: none; color: var(--text-color); cursor: pointer; font-size: 1.5rem; line-height: 1; padding: 0 5px;">&#8942;</button>
+                            <div id="dropdown-{{ s.id }}" style="display: none; position: absolute; right: 0; top: 100%; background: var(--bg-color); border: 1px solid var(--glass-border); border-radius: 8px; padding: 0.5rem; min-width: 150px; z-index: 50; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                <form action="{{ url_for('delete_source', id=s.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar TODO este bolsillo y su historial?');">
+                                    <button type="submit" style="background: transparent; border: none; color: var(--danger-color); cursor: pointer; width: 100%; text-align: left; padding: 0.5rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem;">
+                                        <span>🗑️</span> Borrar Bolsillo
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 1rem;">Método: {{ s.currency }}</p>
+                    <h3>Saldo Restante</h3>
+                    <div class="value {% if s.remaining_amount > 0 %}text-success{% else %}text-danger{% endif %} mb-4">
+                        ${{ "%.2f"|format(s.remaining_amount) }}
+                    </div>
+                </div>
+            </div>
+        {% else %}
+            <p class="text-center" style="grid-column: 1 / -1;">No tienes bolsillos creados aún. Registra un "Nuevo Ingreso".</p>
+        {% endfor %}
+    </div>
+</div>
+
+<div class="glass-panel">
+    <div class="flex justify-between items-center mb-4">
+        <h3>Historial de Movimientos</h3>
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-success">+ Nueva Operación</a>
+    </div>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Tipo</th>
+                    <th>Bolsillo Afectado</th>
+                    <th>Descripción</th>
+                    <th>Monto</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in transactions %}
+                <tr>
+                    <td>{{ t.date }} {{ t.time.strftime('%H:%M') }}</td>
+                    <td>
+                        <span class="{% if t.type in ['ingreso_nuevo', 'ingreso_adicional'] %}text-success{% else %}text-danger{% endif %}">
+                            {{ t.type.replace('_', ' ').capitalize() }}
+                        </span>
+                    </td>
+                    <td>{{ t.source.name }} ({{ t.source.currency }})</td>
+                    <td>{{ t.description }}</td>
+                    <td>
+                        <span class="{% if t.type in ['ingreso_nuevo', 'ingreso_adicional'] %}text-success{% else %}text-danger{% endif %}">
+                            {% if t.type in ['ingreso_nuevo', 'ingreso_adicional'] %}+{% else %}-{% endif %}{{ "%.2f"|format(t.amount) }}
+                        </span>
+                    </td>
+                    <td style="display: flex; gap: 0.5rem; justify-content: flex-start;">
+                        <a href="{{ url_for('edit_transaction', id=t.id) }}" style="text-decoration: none; font-size: 1.1rem;" title="Editar Movimiento">✏️</a>
+                        <form action="{{ url_for('delete_transaction', id=t.id) }}" method="POST" onsubmit="return confirm('¿Estás seguro de eliminar este movimiento?');">
+                            <button type="submit" style="background: none; border: none; color: var(--danger-color); cursor: pointer; font-size: 1.1rem;" title="Eliminar Movimiento">❌</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center">No hay transacciones registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const metodosData = {{ metodos|tojson }};
+    const labels = Object.keys(metodosData);
+    const data = labels.map(label => metodosData[label]);
+
+    const ctx = document.getElementById('metodosChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Saldo Disponible',
+                data: data,
+                backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                borderColor: 'rgba(59, 130, 246, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#94a3b8' }
+                },
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                    ticks: { color: '#94a3b8' }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+
+    function toggleDropdown(id) {
+        // Cerrar todos los demás dropdowns
+        document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+            if (el.id !== 'dropdown-' + id) {
+                el.style.display = 'none';
+            }
+        });
+        
+        // Alternar el actual
+        const dropdown = document.getElementById('dropdown-' + id);
+        if (dropdown.style.display === 'none') {
+            dropdown.style.display = 'block';
+        } else {
+            dropdown.style.display = 'none';
+        }
+    }
+
+    // Cerrar el menú si se hace clic afuera
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('div[style*="position: absolute; right: 0; top: -5px;"]')) {
+            document.querySelectorAll('[id^="dropdown-"]').forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+    });
+</script>
+{% endblock %}

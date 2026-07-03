@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container glass-panel" style="max-width: 600px;">
+    <h2 class="mb-4">Editar Operación</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label>Tipo de Operación</label>
+            <input type="text" class="form-control" value="{{ tx.type.replace('_', ' ').capitalize() }}" disabled style="background: rgba(0,0,0,0.2); cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+            <label>Bolsillo / Fondo</label>
+            <input type="text" class="form-control" value="{{ tx.source.name }} ({{ tx.source.currency }})" disabled style="background: rgba(0,0,0,0.2); cursor: not-allowed;">
+        </div>
+
+        <div class="form-group">
+            <label for="amount">Monto</label>
+            <input type="number" id="amount" name="amount" step="0.01" min="0.01" class="form-control" value="{{ tx.amount }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Descripción / Motivo</label>
+            <input type="text" id="description" name="description" class="form-control" value="{{ tx.description }}" required>
+        </div>
+        
+        <div class="flex" style="gap: 1rem;">
+            <div class="form-group" style="flex: 1;">
+                <label for="date">Fecha</label>
+                <input type="date" id="date" name="date" class="form-control" value="{{ tx.date }}" required>
+            </div>
+            <div class="form-group" style="flex: 1;">
+                <label for="time">Hora</label>
+                <input type="time" id="time" name="time" class="form-control" value="{{ tx.time.strftime('%H:%M') }}" required>
+            </div>
+        </div>
+
+        <div class="flex justify-between mt-4">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-danger">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

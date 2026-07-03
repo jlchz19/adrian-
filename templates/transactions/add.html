@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-container glass-panel" style="max-width: 600px;">
+    <h2 class="mb-4">Registrar Operación</h2>
+    <form method="POST">
+        <div class="form-group">
+            <label for="operation_type">Tipo de Operación</label>
+            <select id="operation_type" name="operation_type" class="form-control" required onchange="toggleFields()">
+                <option value="">Seleccione una opción...</option>
+                <option value="ingreso_nuevo">Crear Nuevo Ingreso (Nuevo Bolsillo)</option>
+                {% if sources %}
+                    <option value="ingreso_adicional">Sumar dinero a Ingreso Actual</option>
+                {% endif %}
+                {% if active_sources %}
+                    <option value="egreso">Registrar Gasto (Egreso)</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <!-- Campos para Ingreso Nuevo -->
+        <div id="new_source_fields" style="display: none; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 1rem;">
+            <div class="form-group">
+                <label for="source_name">Nombre de este Ingreso</label>
+                <input type="text" id="source_name" name="source_name" class="form-control" placeholder="Ej. Quincena 15 de Julio, Venta de Computadora...">
+            </div>
+            <div class="form-group">
+                <label for="currency">Moneda / Método de Pago</label>
+                <select id="currency" name="currency" class="form-control">
+                    <option value="Bolivares">Bolívares</option>
+                    <option value="Dolares Efectivo">Dólares (Efectivo)</option>
+                    <option value="Zelle">Zelle</option>
+                    <option value="Binance">Binance</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Campos para Ingreso Adicional o Egreso -->
+        <div id="existing_source_fields" style="display: none; padding: 1rem; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 1rem;">
+            <div class="form-group">
+                <label for="source_id">Seleccionar Bolsillo / Ingreso</label>
+                <select id="source_id" name="source_id" class="form-control">
+                    <option value="">Seleccione...</option>
+                    {% for s in sources %}
+                        <option value="{{ s.id }}" class="source-option all-source {% if s.remaining_amount <= 0 %}empty-source{% endif %}" data-remaining="{{ s.remaining_amount }}">
+                            {{ s.name }} (Saldo: ${{ "%.2f"|format(s.remaining_amount) }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Campos Comunes -->
+        <div id="common_fields" style="display: none;">
+            <div class="form-group">
+                <label for="amount">Monto</label>
+                <input type="number" id="amount" name="amount" step="0.01" min="0.01" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="description">Descripción / Motivo</label>
+                <input type="text" id="description" name="description" class="form-control" placeholder="Ej. Pago de luz, Bono adicional...">
+            </div>
+            
+            <div class="flex" style="gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label for="date">Fecha</label>
+                    <input type="date" id="date" name="date" class="form-control">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <label for="time">Hora</label>
+                    <input type="time" id="time" name="time" class="form-control">
+                </div>
+            </div>
+
+            <div class="flex justify-between mt-4">
+                <a href="{{ url_for('dashboard') }}" class="btn btn-danger">Cancelar</a>
+                <button type="submit" class="btn btn-success">Guardar Operación</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function toggleFields() {
+        const type = document.getElementById('operation_type').value;
+        const newFields = document.getElementById('new_source_fields');
+        const existingFields = document.getElementById('existing_source_fields');
+        const commonFields = document.getElementById('common_fields');
+        const sourceSelect = document.getElementById('source_id');
+        const options = sourceSelect.querySelectorAll('.source-option');
+
+        // Reset required attributes
+        document.getElementById('source_name').required = false;
+        document.getElementById('currency').required = false;
+        sourceSelect.required = false;
+        document.getElementById('amount').required = false;
+        document.getElementById('description').required = false;
+
+        newFields.style.display = 'none';
+        existingFields.style.display = 'none';
+        commonFields.style.display = 'none';
+
+        if (!type) return;
+
+        commonFields.style.display = 'block';
+        document.getElementById('amount').required = true;
+        document.getElementById('description').required = true;
+
+        if (type === 'ingreso_nuevo') {
+            newFields.style.display = 'block';
+            document.getElementById('source_name').required = true;
+            document.getElementById('currency').required = true;
+        } else {
+            existingFields.style.display = 'block';
+            sourceSelect.required = true;
+            
+            // Filter options based on type
+            options.forEach(opt => {
+                if (type === 'egreso' && opt.classList.contains('empty-source')) {
+                    opt.disabled = true;
+                } else {
+                    opt.disabled = false;
+                }
+            });
+            // Reset selection
+            sourceSelect.value = '';
+        }
+    }
+
+    // Set default date and time to now
+    document.addEventListener('DOMContentLoaded', () => {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        document.getElementById('date').value = `${year}-${month}-${day}`;
+        
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        document.getElementById('time').value = `${hours}:${minutes}`;
+    });
+</script>
+{% endblock %}
