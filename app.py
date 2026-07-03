@@ -23,6 +23,25 @@ def load_user(id):
 with app.app_context():
     db.create_all()
 
+CATEGORIAS_REPORTES = {
+    'Vehículo': {
+        'keywords': ['carro', 'auto', 'gasolina', 'taller', 'vehículo', 'vehiculo', 'repuesto', 'moto'],
+        'icon': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>'
+    },
+    'Divisas': {
+        'keywords': ['dolar', 'dólar', 'dolares', 'dólares', 'divisa', 'divisas', 'euro', 'euros', 'cambio', 'zelle'],
+        'icon': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>'
+    },
+    'Comida': {
+        'keywords': ['comida', 'supermercado', 'restaurante', 'cena', 'almuerzo', 'desayuno', 'mercado', 'pizza', 'hamburguesa'],
+        'icon': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>'
+    },
+    'Servicios': {
+        'keywords': ['luz', 'agua', 'internet', 'teléfono', 'telefono', 'gas', 'alquiler', 'renta', 'servicio'],
+        'icon': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>'
+    }
+}
+
 @app.route('/')
 def index():
     if current_user.is_authenticated:
@@ -88,6 +107,27 @@ def reset_password():
 def logout():
     logout_user()
     return redirect(url_for('login'))
+
+@app.route('/calculator')
+@login_required
+def calculator():
+    return render_template('calculator.html')
+
+@app.route('/reports')
+@login_required
+def reports():
+    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+    
+    active_categories = {}
+    for cat_name, data in CATEGORIAS_REPORTES.items():
+        count = sum(1 for t in transactions if any(kw in t.description.lower() for kw in data['keywords']))
+        if count > 0:
+            active_categories[cat_name] = {
+                'icon': data['icon'],
+                'count': count
+            }
+            
+    return render_template('reports.html', active_categories=active_categories)
 
 @app.route('/dashboard')
 @login_required
@@ -257,10 +297,22 @@ def delete_source(id):
 @app.route('/export/pdf')
 @login_required
 def export_pdf():
+    category = request.args.get('category')
+    transactions_query = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.desc(), Transaction.time.desc())
+    
+    if category and category in CATEGORIAS_REPORTES:
+        keywords = CATEGORIAS_REPORTES[category]['keywords']
+        all_txs = transactions_query.all()
+        transactions = [t for t in all_txs if any(kw in t.description.lower() for kw in keywords)]
+    else:
+        transactions = transactions_query.all()
+        
     sources = IncomeSource.query.filter_by(user_id=current_user.id).all()
-    transactions = Transaction.query.filter_by(user_id=current_user.id).order_by(Transaction.date.desc(), Transaction.time.desc()).all()
-    pdf_path = generate_pdf_report(current_user, sources, transactions)
-    return send_file(pdf_path, as_attachment=True, download_name='Resumen_Bolsillos.pdf')
+    pdf_path = generate_pdf_report(current_user, sources, transactions, category)
+    
+    cat_name = category.replace(' ', '_') if category else "General"
+    filename = f'Resumen_{cat_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+    return send_file(pdf_path, as_attachment=True, download_name=filename, max_age=0)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5000)

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="display: flex; justify-content: center; align-items: center; min-height: 70vh;">
+    <div class="calculator-page-container glass-panel">
+        <div class="calc-header text-center mb-4" style="justify-content: center;">
+            <h2 style="margin: 0;">Calculadora</h2>
+        </div>
+        <div class="calc-display" style="background: rgba(0, 0, 0, 0.3); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem;">
+            <div class="calc-history" id="calcHistory" style="font-size: 1rem;"></div>
+            <div class="calc-current" id="calcCurrent" style="font-size: 2.5rem;">0</div>
+        </div>
+        <div class="calc-keys" style="gap: 0.8rem;">
+            <button type="button" class="calc-btn operator" onclick="calcAction('clear')">C</button>
+            <button type="button" class="calc-btn operator" onclick="calcAction('del')">DEL</button>
+            <button type="button" class="calc-btn operator" onclick="calcAction('/')">/</button>
+            <button type="button" class="calc-btn operator" onclick="calcAction('*')">*</button>
+            
+            <button type="button" class="calc-btn" onclick="calcAction('7')">7</button>
+            <button type="button" class="calc-btn" onclick="calcAction('8')">8</button>
+            <button type="button" class="calc-btn" onclick="calcAction('9')">9</button>
+            <button type="button" class="calc-btn operator" onclick="calcAction('-')">-</button>
+            
+            <button type="button" class="calc-btn" onclick="calcAction('4')">4</button>
+            <button type="button" class="calc-btn" onclick="calcAction('5')">5</button>
+            <button type="button" class="calc-btn" onclick="calcAction('6')">6</button>
+            <button type="button" class="calc-btn operator" onclick="calcAction('+')">+</button>
+            
+            <button type="button" class="calc-btn" onclick="calcAction('1')">1</button>
+            <button type="button" class="calc-btn" onclick="calcAction('2')">2</button>
+            <button type="button" class="calc-btn" onclick="calcAction('3')">3</button>
+            <button type="button" class="calc-btn equal" style="grid-row: span 2;" onclick="calcAction('=')">=</button>
+            
+            <button type="button" class="calc-btn" style="grid-column: span 2;" onclick="calcAction('0')">0</button>
+            <button type="button" class="calc-btn" onclick="calcAction('.')">.</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .calculator-page-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 2rem;
+    }
+    .calc-btn {
+        padding: 1.2rem 0;
+        font-size: 1.4rem;
+    }
+    [data-theme="light"] .calc-display {
+        background: rgba(255, 255, 255, 0.9) !important;
+    }
+</style>
+
+<script>
+    let currentInput = '';
+    let previousInput = '';
+    let currentOperation = null;
+    
+    const calcCurrent = document.getElementById('calcCurrent');
+    const calcHistory = document.getElementById('calcHistory');
+    
+    function updateDisplay() {
+        if(calcCurrent) calcCurrent.innerText = currentInput || '0';
+        if(calcHistory) calcHistory.innerText = previousInput + (currentOperation ? ' ' + currentOperation : '');
+    }
+    
+    function calcAction(val) {
+        if (val === 'clear') {
+            currentInput = '';
+            previousInput = '';
+            currentOperation = null;
+        } else if (val === 'del') {
+            currentInput = currentInput.slice(0, -1);
+        } else if (['+', '-', '*', '/'].includes(val)) {
+            if (currentInput === '' && previousInput !== '') {
+                currentOperation = val;
+            } else if (currentInput !== '') {
+                if (previousInput !== '') calcAction('=');
+                previousInput = currentInput;
+                currentOperation = val;
+                currentInput = '';
+            }
+        } else if (val === '=') {
+            if (currentInput !== '' && previousInput !== '' && currentOperation) {
+                const prev = parseFloat(previousInput);
+                const curr = parseFloat(currentInput);
+                let result = 0;
+                switch (currentOperation) {
+                    case '+': result = prev + curr; break;
+                    case '-': result = prev - curr; break;
+                    case '*': result = prev * curr; break;
+                    case '/': result = prev / curr; break;
+                }
+                currentInput = String(result);
+                previousInput = '';
+                currentOperation = null;
+            }
+        } else {
+            if (val === '.' && currentInput.includes('.')) return;
+            currentInput += val;
+        }
+        updateDisplay();
+    }
+</script>
+{% endblock %}

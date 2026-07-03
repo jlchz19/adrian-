@@ -13,11 +13,15 @@ class PDF(FPDF):
         self.set_font('Arial', 'I', 8)
         self.cell(0, 10, f'Pagina {self.page_no()}', 0, 0, 'C')
 
-def generate_pdf_report(user, sources, transactions):
+def generate_pdf_report(user, sources, transactions, category=None):
     pdf = PDF()
     pdf.add_page()
     
     # Info del usuario
+    pdf.set_font('Arial', 'B', 12)
+    if category:
+        pdf.cell(0, 10, f'Reporte por Categoria: {category}', 0, 1)
+    
     pdf.set_font('Arial', '', 12)
     pdf.cell(0, 10, f'Usuario: {user.username}', 0, 1)
     pdf.cell(0, 10, f'Fecha de generacion: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}', 0, 1)
