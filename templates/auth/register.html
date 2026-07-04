@@ -43,7 +43,7 @@
             <p class="text-muted">Únete a FinanzasPro y empieza a gestionar tus bolsillos</p>
         </div>
         
-        <form method="POST" class="auth-form">
+        <form method="POST" action="{{ url_for('register') }}" class="auth-form">
             <div class="form-group floating-group">
                 <input type="text" id="username" name="username" class="form-control professional-input" placeholder=" " required>
                 <label for="username" class="floating-label">Usuario</label>
