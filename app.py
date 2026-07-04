@@ -399,8 +399,8 @@ def backup_upload():
                         type=t_data['type'],
                         amount=float(t_data['amount']),
                         description=t_data['description'],
-                        date=datetime.fromisoformat(t_data['date']).date(),
-                        time=datetime.fromisoformat(t_data['time']).time()
+                        date=datetime.strptime(t_data['date'], '%Y-%m-%d').date(),
+                        time=datetime.strptime(t_data['time'][:8], '%H:%M:%S').time()
                     )
                     db.session.add(new_tx)
             db.session.commit()
