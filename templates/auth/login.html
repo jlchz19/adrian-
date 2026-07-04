@@ -3,7 +3,9 @@
 {% block content %}
 <style>
     body {
-        overflow-y: auto;
+        overflow: hidden; /* Lock vertical and horizontal scroll */
+        overscroll-behavior: none; /* Prevent bounce effect */
+        touch-action: none; /* Prevent all dragging/scrolling gestures on mobile */
     }
     .container {
         margin: 0 auto !important;
