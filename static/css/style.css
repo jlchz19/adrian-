@@ -16,6 +16,10 @@
     font-family: 'Inter', sans-serif;
 }
 
+html, body {
+    overflow-x: hidden;
+}
+
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
@@ -506,6 +510,14 @@ select.form-control option {
     --glass-border: rgba(0, 0, 0, 0.1);
 }
 
+[data-theme="light"] .navbar {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .nav-links {
+    background: rgba(241, 245, 249, 0.98);
+}
+
 .theme-toggle-btn {
     background: transparent;
     border: none;
@@ -743,7 +755,7 @@ select.form-control option {
 
 .auth-image-side {
     display: block;
-    height: 180px; /* Fixed height for mobile */
+    height: 100px; /* Reduced height for mobile to fit on one screen */
     flex: none;
     background-color: rgba(0, 0, 0, 0.2);
 }
