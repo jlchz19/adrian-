@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-4">
+    <h2>Ajustes</h2>
+</div>
+
+<div class="glass-panel mb-4">
+    <h3 class="mb-2" style="display: flex; align-items: center; gap: 0.5rem;">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Exportar Respaldo
+    </h3>
+    <p class="mb-4" style="color: #94a3b8; font-size: 0.95rem;">
+        Descarga un archivo seguro con todos tus bolsillos y movimientos. 
+        Guarda este archivo en tu teléfono o computadora para no perder tu información.
+    </p>
+    <a href="{{ url_for('backup_download') }}" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Descargar Respaldo
+    </a>
+</div>
+
+<div class="glass-panel">
+    <h3 class="mb-2" style="display: flex; align-items: center; gap: 0.5rem; color: var(--danger-color);">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+        </svg>
+        Importar Respaldo
+    </h3>
+    <p class="mb-4" style="color: #94a3b8; font-size: 0.95rem;">
+        Sube un archivo de respaldo previo para restaurar tu información. 
+        <strong>¡Atención!</strong> Esto borrará todos tus datos actuales y los reemplazará con los del respaldo.
+    </p>
+    
+    <form action="{{ url_for('backup_upload') }}" method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <input type="file" name="backup_file" accept=".json" required class="form-control" style="padding: 0.5rem; height: auto;">
+        </div>
+        <button type="submit" class="btn btn-danger" style="display: inline-flex; align-items: center; gap: 0.5rem; justify-content: center; width: 100%; margin-top: 1rem;" onclick="return confirm('¿Estás SEGURO de que quieres sobreescribir tus datos actuales con este archivo? ¡Esta acción no se puede deshacer!');">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Subir y Restaurar Respaldo
+        </button>
+    </form>
+</div>
+{% endblock %}

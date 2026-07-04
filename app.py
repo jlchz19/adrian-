@@ -3,6 +3,7 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from models import db, User, Transaction, IncomeSource
 from datetime import datetime
 import os
+import json
 from utils.pdf_generator import generate_pdf_report
 
 app = Flask(__name__)
@@ -316,6 +317,100 @@ def export_pdf():
     cat_name = category.replace(' ', '_') if category else "General"
     filename = f'Resumen_{cat_name}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
     return send_file(pdf_path, as_attachment=True, download_name=filename, max_age=0)
+
+@app.route('/settings')
+@login_required
+def settings():
+    return render_template('settings.html')
+
+@app.route('/backup/download')
+@login_required
+def backup_download():
+    sources = IncomeSource.query.filter_by(user_id=current_user.id).all()
+    transactions = Transaction.query.filter_by(user_id=current_user.id).all()
+    
+    data = {
+        'sources': [{
+            'id': s.id,
+            'name': s.name,
+            'currency': s.currency,
+            'created_at': s.created_at.isoformat()
+        } for s in sources],
+        'transactions': [{
+            'source_id': t.source_id,
+            'type': t.type,
+            'amount': t.amount,
+            'description': t.description,
+            'date': t.date.isoformat(),
+            'time': t.time.isoformat()
+        } for t in transactions]
+    }
+    
+    # Save to temp file
+    filename = f'finanzaspro_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    filepath = os.path.join(os.path.dirname(__file__), 'static', filename)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        
+    return send_file(filepath, as_attachment=True, download_name=filename)
+
+@app.route('/backup/upload', methods=['POST'])
+@login_required
+def backup_upload():
+    if 'backup_file' not in request.files:
+        flash('No se subió ningún archivo.', 'error')
+        return redirect(url_for('settings'))
+        
+    file = request.files['backup_file']
+    if file.filename == '':
+        flash('No se seleccionó ningún archivo.', 'error')
+        return redirect(url_for('settings'))
+        
+    if file and file.filename.endswith('.json'):
+        try:
+            data = json.load(file)
+            
+            # 1. Delete all current data
+            Transaction.query.filter_by(user_id=current_user.id).delete()
+            IncomeSource.query.filter_by(user_id=current_user.id).delete()
+            db.session.commit()
+            
+            # 2. Insert sources and map old IDs to new IDs
+            source_id_map = {}
+            for s_data in data.get('sources', []):
+                new_source = IncomeSource(
+                    user_id=current_user.id,
+                    name=s_data['name'],
+                    currency=s_data['currency'],
+                    created_at=datetime.fromisoformat(s_data['created_at'])
+                )
+                db.session.add(new_source)
+                db.session.commit() # Commit to get the new ID
+                source_id_map[s_data['id']] = new_source.id
+                
+            # 3. Insert transactions with mapped source IDs
+            for t_data in data.get('transactions', []):
+                old_source_id = t_data.get('source_id')
+                new_source_id = source_id_map.get(old_source_id)
+                if new_source_id:
+                    new_tx = Transaction(
+                        user_id=current_user.id,
+                        source_id=new_source_id,
+                        type=t_data['type'],
+                        amount=float(t_data['amount']),
+                        description=t_data['description'],
+                        date=datetime.fromisoformat(t_data['date']).date(),
+                        time=datetime.fromisoformat(t_data['time']).time()
+                    )
+                    db.session.add(new_tx)
+            db.session.commit()
+            
+            flash('Respaldo restaurado exitosamente.', 'success')
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error al procesar el archivo: {str(e)}', 'error')
+            
+    return redirect(url_for('settings'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=True, port=5000)
