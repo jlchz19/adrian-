@@ -726,9 +726,10 @@ select.form-control option {
     }
 }
 
-/* Auth Two-Column Layout */
+/* Auth Layout */
 .auth-wrapper {
     display: flex;
+    flex-direction: column; /* Mobile first: stack vertically */
     max-width: 900px;
     margin: 4rem auto;
     background: var(--card-bg);
@@ -741,8 +742,9 @@ select.form-control option {
 }
 
 .auth-image-side {
-    flex: 1;
-    display: none;
+    display: block;
+    height: 180px; /* Fixed height for mobile */
+    flex: none;
     background-color: rgba(0, 0, 0, 0.2);
 }
 
@@ -758,15 +760,22 @@ select.form-control option {
     box-shadow: none;
     border: none;
     border-radius: 0;
-    max-width: 500px;
+    max-width: 100%; /* Full width on mobile */
 }
 
 [data-theme="light"] .auth-wrapper {
     background: rgba(255, 255, 255, 0.85);
 }
 
-@media (min-width: 768px) {
+@media (min-width: 992px) {
+    .auth-wrapper {
+        flex-direction: row; /* Switch to side-by-side on desktop */
+    }
     .auth-image-side {
-        display: block;
+        flex: 1;
+        height: auto;
+    }
+    .auth-wrapper .professional-auth {
+        max-width: 500px; /* Constrain form width on desktop */
     }
 }
